@@ -72,19 +72,55 @@ export const deleteVehicle = async (req: AuthenticatedRequest, res: Response) =>
 export const purchaseVehicle = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = req.params.id as string;
+    const userId = req.user?.userId;
+
+    if (!userId) return res.status(401).json({ message: 'User unauthenticated' });
+
     const vehicle = await prisma.vehicle.findUnique({ where: { id } });
 
     if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
     if (vehicle.quantity <= 0) return res.status(400).json({ message: 'Out of stock' });
 
-    const updated = await prisma.vehicle.update({
-      where: { id },
-      data: { quantity: vehicle.quantity - 1 }
-    });
+    // Transactional purchase & audit record creation
+    const [updatedVehicle, transaction] = await prisma.$transaction([
+      prisma.vehicle.update({
+        where: { id },
+        data: { quantity: vehicle.quantity - 1 }
+      }),
+      prisma.transaction.create({
+        data: {
+          userId,
+          vehicleId: id,
+          price: vehicle.price
+        }
+      })
+    ]);
 
-    return res.json(updated);
+    return res.json({ vehicle: updatedVehicle, transaction });
   } catch (error) {
     return res.status(500).json({ message: 'Error processing purchase' });
+  }
+};
+
+export const getTransactionHistory = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const role = req.user?.role;
+
+    const where = role === 'ADMIN' ? {} : { userId };
+
+    const transactions = await prisma.transaction.findMany({
+      where,
+      include: {
+        user: { select: { email: true } },
+        vehicle: { select: { make: true, model: true, category: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return res.json(transactions);
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching transactions' });
   }
 };
 

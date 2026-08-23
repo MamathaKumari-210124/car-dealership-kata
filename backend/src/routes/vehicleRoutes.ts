@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { 
   addVehicle, getVehicles, searchVehicles, updateVehicle, 
-  deleteVehicle, purchaseVehicle, restockVehicle 
+  deleteVehicle, purchaseVehicle, restockVehicle, getTransactionHistory 
 } from '../controllers/vehicleController';
 import { authenticateJWT, requireAdmin } from '../middleware/auth';
 
@@ -9,6 +9,7 @@ const router = Router();
 
 router.use(authenticateJWT);
 
+router.get('/transactions', getTransactionHistory);
 router.post('/', addVehicle);
 router.get('/', getVehicles);
 router.get('/search', searchVehicles);

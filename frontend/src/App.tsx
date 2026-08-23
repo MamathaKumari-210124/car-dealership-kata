@@ -10,6 +10,14 @@ interface Vehicle {
   quantity: number;
 }
 
+interface Transaction {
+  id: string;
+  price: number;
+  createdAt: string;
+  user: { email: string };
+  vehicle: { make: string; model: string; category: string };
+}
+
 const API_BASE = 'http://localhost:5000/api';
 
 export default function App() {
@@ -18,7 +26,9 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchMake, setSearchMake] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
   
@@ -32,6 +42,7 @@ export default function App() {
   useEffect(() => {
     if (token) {
       fetchVehicles();
+      fetchTransactions();
     }
   }, [token]);
 
@@ -41,6 +52,17 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setVehicles(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/vehicles/transactions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTransactions(res.data);
     } catch (err) {
       console.error(err);
     }
@@ -92,6 +114,7 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchVehicles();
+      fetchTransactions();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Purchase failed');
     }
@@ -147,7 +170,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Vehicle Addition Form */}
+      {/* Admin Vehicle Addition Form */}
       <section style={{ background: '#f8f9fa', padding: '15px', borderRadius: '6px', marginBottom: '20px' }}>
         <h3>Add New Vehicle</h3>
         <form onSubmit={handleAddVehicle} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
@@ -166,8 +189,9 @@ export default function App() {
         <input placeholder="Search Category..." value={searchCategory} onChange={e => setSearchCategory(e.target.value)} style={{ padding: '8px', flex: 1 }} />
       </section>
 
-      {/* Vehicle Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+      {/* Vehicle Inventory Table */}
+      <h3>Available Vehicles</h3>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', marginBottom: '30px' }}>
         <thead>
           <tr style={{ background: '#343a40', color: 'white', textAlign: 'left' }}>
             <th style={{ padding: '10px' }}>Make</th>
@@ -196,6 +220,29 @@ export default function App() {
                   </button>
                 )}
               </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Transaction Audit History Table */}
+      <h3>📜 Purchase Audit Log</h3>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+        <thead>
+          <tr style={{ background: '#17a2b8', color: 'white', textAlign: 'left' }}>
+            <th style={{ padding: '10px' }}>User</th>
+            <th>Vehicle</th>
+            <th>Price</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map(t => (
+            <tr key={t.id} style={{ borderBottom: '1px solid #ddd' }}>
+              <td style={{ padding: '10px' }}>{t.user?.email || 'N/A'}</td>
+              <td>{t.vehicle ? `${t.vehicle.make} ${t.vehicle.model}` : 'Deleted Vehicle'}</td>
+              <td>${t.price.toLocaleString()}</td>
+              <td>{new Date(t.createdAt).toLocaleString()}</td>
             </tr>
           ))}
         </tbody>

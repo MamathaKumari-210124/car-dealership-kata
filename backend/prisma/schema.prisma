@@ -4,21 +4,36 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id       String @id @default(uuid())
-  email    String @unique
-  password String
-  role     String @default("USER") // "USER" or "ADMIN"
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  role         String        @default("USER")
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
 }
 
 model Vehicle {
-  id       String @id @default(uuid())
-  make     String
-  model    String
-  category String
-  price    Float
-  quantity Int
+  id           String        @id @default(uuid())
+  make         String
+  model        String
+  category     String
+  price        Float
+  quantity     Int
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  vehicleId String
+  price     Float
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
