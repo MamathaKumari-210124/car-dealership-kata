@@ -36,8 +36,11 @@ export default function App() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<AnalyticsStats>({ revenue: 0, salesCount: 0, lowStockCount: 0 });
-  const [searchMake, setSearchMake] = useState('');
-  const [searchCategory, setSearchCategory] = useState('');
+  
+  // Filter States
+  const [search, setSearch] = useState('');
+  const [maxPrice, setMaxPrice] = useState<number>(100000);
+  const [onlyInStock, setOnlyInStock] = useState<boolean>(false);
   
   // New Vehicle Form State
   const [newMake, setNewMake] = useState('');
@@ -153,10 +156,17 @@ export default function App() {
     }
   };
 
-  const filteredVehicles = vehicles.filter(v => 
-    v.make.toLowerCase().includes(searchMake.toLowerCase()) &&
-    v.category.toLowerCase().includes(searchCategory.toLowerCase())
-  );
+  // Compute filtered vehicles
+  const filteredVehicles = vehicles.filter((v) => {
+    const matchesSearch =
+      v.make.toLowerCase().includes(search.toLowerCase()) ||
+      v.model.toLowerCase().includes(search.toLowerCase()) ||
+      v.category.toLowerCase().includes(search.toLowerCase());
+    const matchesPrice = v.price <= maxPrice;
+    const matchesStock = onlyInStock ? v.quantity > 0 : true;
+
+    return matchesSearch && matchesPrice && matchesStock;
+  });
 
   if (!token) {
     return (
@@ -229,10 +239,34 @@ export default function App() {
         </form>
       </section>
 
-      {/* Filter Section */}
-      <section style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-        <input placeholder="Search Make..." value={searchMake} onChange={e => setSearchMake(e.target.value)} style={{ padding: '8px', flex: 1 }} />
-        <input placeholder="Search Category..." value={searchCategory} onChange={e => setSearchCategory(e.target.value)} style={{ padding: '8px', flex: 1 }} />
+      {/* Interactive Multi-Filter Bar */}
+      <section style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+        <input
+          type="text"
+          placeholder="Search make, model, or category..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ flex: 2, padding: '8px' }}
+        />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <label style={{ fontSize: '0.8rem', color: '#6c757d' }}>Max Price: ${maxPrice.toLocaleString()}</label>
+          <input
+            type="range"
+            min="5000"
+            max="100000"
+            step="1000"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(Number(e.target.value))}
+          />
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={onlyInStock}
+            onChange={(e) => setOnlyInStock(e.target.checked)}
+          />
+          In Stock Only
+        </label>
       </section>
 
       {/* Vehicle Inventory Table */}
