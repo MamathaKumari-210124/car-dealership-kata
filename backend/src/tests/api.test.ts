@@ -10,7 +10,6 @@ let adminToken: string;
 let vehicleId: string;
 
 beforeAll(async () => {
-  // Wipe test records to ensure clean state
   await prisma.transaction.deleteMany();
   await prisma.vehicle.deleteMany();
   await prisma.user.deleteMany();
