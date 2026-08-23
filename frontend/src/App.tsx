@@ -18,6 +18,12 @@ interface Transaction {
   vehicle: { make: string; model: string; category: string };
 }
 
+interface AnalyticsStats {
+  revenue: number;
+  salesCount: number;
+  lowStockCount: number;
+}
+
 const API_BASE = 'http://localhost:5000/api';
 
 export default function App() {
@@ -29,6 +35,7 @@ export default function App() {
   
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [stats, setStats] = useState<AnalyticsStats>({ revenue: 0, salesCount: 0, lowStockCount: 0 });
   const [searchMake, setSearchMake] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
   
@@ -43,6 +50,7 @@ export default function App() {
     if (token) {
       fetchVehicles();
       fetchTransactions();
+      fetchStats();
     }
   }, [token]);
 
@@ -63,6 +71,17 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTransactions(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/analytics/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setStats(res.data);
     } catch (err) {
       console.error(err);
     }
@@ -103,6 +122,7 @@ export default function App() {
       );
       setNewMake(''); setNewModel(''); setNewCategory(''); setNewPrice(''); setNewQuantity('');
       fetchVehicles();
+      fetchStats();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to add vehicle');
     }
@@ -115,6 +135,7 @@ export default function App() {
       });
       fetchVehicles();
       fetchTransactions();
+      fetchStats();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Purchase failed');
     }
@@ -126,6 +147,7 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchVehicles();
+      fetchStats();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Delete failed (Admin required)');
     }
@@ -169,6 +191,30 @@ export default function App() {
           <button onClick={handleLogout} style={{ marginLeft: '10px', padding: '5px 10px' }}>Logout</button>
         </div>
       </header>
+
+      {/* Analytics KPI Dashboard */}
+      <section style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', flex: 1, textAlign: 'center', border: '1px solid #e9ecef' }}>
+          <h4 style={{ margin: 0, color: '#6c757d' }}>Total Revenue</h4>
+          <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#28a745', margin: '0.5rem 0 0 0' }}>
+            ${stats.revenue.toLocaleString()}
+          </p>
+        </div>
+        
+        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', flex: 1, textAlign: 'center', border: '1px solid #e9ecef' }}>
+          <h4 style={{ margin: 0, color: '#6c757d' }}>Vehicles Sold</h4>
+          <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#17a2b8', margin: '0.5rem 0 0 0' }}>
+            {stats.salesCount}
+          </p>
+        </div>
+
+        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', flex: 1, textAlign: 'center', border: '1px solid #e9ecef' }}>
+          <h4 style={{ margin: 0, color: '#6c757d' }}>Low Stock Alerts</h4>
+          <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#dc3545', margin: '0.5rem 0 0 0' }}>
+            {stats.lowStockCount}
+          </p>
+        </div>
+      </section>
 
       {/* Admin Vehicle Addition Form */}
       <section style={{ background: '#f8f9fa', padding: '15px', borderRadius: '6px', marginBottom: '20px' }}>
