@@ -7,7 +7,7 @@ interface Vehicle {
   model: string;
   category: string;
   price: number;
-  quantity: number;
+  stock: number; // Fixed: aligned with Prisma/backend schema (was 'quantity')
 }
 
 interface Transaction {
@@ -120,7 +120,13 @@ export default function App() {
     try {
       await axios.post(
         `${API_BASE}/vehicles`,
-        { make: newMake, model: newModel, category: newCategory, price: newPrice, quantity: newQuantity },
+        { 
+          make: newMake, 
+          model: newModel, 
+          category: newCategory, 
+          price: Number(newPrice), 
+          stock: Number(newQuantity) // Fixed: Send payload key 'stock' to match backend schema
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setNewMake(''); setNewModel(''); setNewCategory(''); setNewPrice(''); setNewQuantity('');
@@ -163,7 +169,7 @@ export default function App() {
       v.model.toLowerCase().includes(search.toLowerCase()) ||
       v.category.toLowerCase().includes(search.toLowerCase());
     const matchesPrice = v.price <= maxPrice;
-    const matchesStock = onlyInStock ? v.quantity > 0 : true;
+    const matchesStock = onlyInStock ? (v.stock ?? 0) > 0 : true; // Fixed: Check v.stock
 
     return matchesSearch && matchesPrice && matchesStock;
   });
@@ -289,10 +295,10 @@ export default function App() {
               <td>{v.model}</td>
               <td>{v.category}</td>
               <td>${v.price.toLocaleString()}</td>
-              <td>{v.quantity}</td>
+              <td>{v.stock}</td> {/* Fixed: render v.stock instead of v.quantity */}
               <td>
-                <button onClick={() => handlePurchase(v.id)} disabled={v.quantity <= 0} style={{ marginRight: '5px', padding: '5px 10px' }}>
-                  {v.quantity > 0 ? 'Buy' : 'Out of Stock'}
+                <button onClick={() => handlePurchase(v.id)} disabled={v.stock <= 0} style={{ marginRight: '5px', padding: '5px 10px' }}>
+                  {v.stock > 0 ? 'Buy' : 'Out of Stock'}
                 </button>
                 {role === 'ADMIN' && (
                   <button onClick={() => handleDelete(v.id)} style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '5px 10px' }}>

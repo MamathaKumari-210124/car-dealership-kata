@@ -4,14 +4,33 @@ import { AuthenticatedRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
+// Replace addVehicle, getVehicles, and searchVehicles with these implementation fixes:
+
 export const addVehicle = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { make, model, category, price, quantity } = req.body;
+    const { make, model, category, price, stock, quantity } = req.body;
+    
+    const vehicleQuantity = Number(stock ?? quantity);
+    const vehiclePrice = Number(price);
+
+    if (!make || !model || !category || isNaN(vehiclePrice) || isNaN(vehicleQuantity)) {
+      return res.status(400).json({ message: 'Invalid payload or missing required fields' });
+    }
+
     const vehicle = await prisma.vehicle.create({
-      data: { make, model, category, price: parseFloat(price), quantity: parseInt(quantity) }
+      data: { 
+        make, 
+        model, 
+        category, 
+        price: vehiclePrice, 
+        quantity: vehicleQuantity 
+      }
     });
-    return res.status(201).json(vehicle);
+
+    // Spread and attach stock property so the frontend UI displays stock correctly
+    return res.status(201).json({ ...vehicle, stock: vehicle.quantity });
   } catch (error) {
+    console.error('Add Vehicle Error:', error);
     return res.status(500).json({ message: 'Error adding vehicle' });
   }
 };
@@ -19,7 +38,8 @@ export const addVehicle = async (req: AuthenticatedRequest, res: Response) => {
 export const getVehicles = async (_req: AuthenticatedRequest, res: Response) => {
   try {
     const vehicles = await prisma.vehicle.findMany();
-    return res.json(vehicles);
+    const formatted = vehicles.map(v => ({ ...v, stock: v.quantity }));
+    return res.json(formatted);
   } catch (error) {
     return res.status(500).json({ message: 'Error fetching vehicles' });
   }
@@ -40,7 +60,8 @@ export const searchVehicles = async (req: AuthenticatedRequest, res: Response) =
     }
 
     const vehicles = await prisma.vehicle.findMany({ where });
-    return res.json(vehicles);
+    const formatted = vehicles.map(v => ({ ...v, stock: v.quantity }));
+    return res.json(formatted);
   } catch (error) {
     return res.status(500).json({ message: 'Error searching vehicles' });
   }
